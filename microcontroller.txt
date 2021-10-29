@@ -1,0 +1,89 @@
+#include<pic18f4520.h> /*HEADER FILE*/
+void Delay_us(int us); /* FUNCTION DECLARATIONS*/
+void Data(int Value);
+void Cmd(int Value);
+void Send2Lcd(const char Adr, const char *Lcd);
+void main() /*MAIN FUNCTION*/
+{
+/* If you want your microcontroller to work at 1MHZ then comment the three lines below */
+OSCCONbits.IRCF0 = 1 ; // set internal clock to 8 MHz
+OSCCONbits.IRCF1 = 1; // For Avoiding switch debouncing problem
+OSCCONbits.IRCF2= 1; //
+ADCON1bits.PCFG0 = 1; // These 4 settings below determines the analog or digital input
+ADCON1bits.PCFG1 = 1; // In our case we are making all the pins digital
+ADCON1bits.PCFG2 = 1; // by setting them as 1111
+ADCON1bits.PCFG3 = 1; // Check with the datasheet for a nice desc of these bits and config.
+ADCON0bits.ADON = 0; // Disabled ADC
+TRISA=0xff; //PORTA CONFIGURED AS INPUT
+TRISC=0X00; //PORTC CONFIGURED AS OUTPUT
+TRISD=0X00; //PORTD CONFIGURED AS OUTPUT
+if(PORTAbits.RA1==1)
+{
+Delay_us(25);
+Cmd(0X30); //LCD SPECIFICATION COMMANDS
+Delay_us(25);
+Cmd(0X30); //LCD SPECIFICATION COMMANDS
+Delay_us(25);
+Cmd(0X30); //LCD SPECIFICATION COMMANDS
+Delay_us(25);
+Cmd(0X38); //DOUBLE LINE DISPLAY COMMAND
+Cmd(0X06); //AUTO INCREMENT LOCATION ADDRESS COMMAND
+Cmd(0X0C);//LCD DISPLAY ON COMMAND
+Cmd(0X01);//CLEAR DISPLAY COMMAND
+Send2Lcd(0x84," Hello Welcome");//DISPLAYS STRING IN THE FIRST LINE
+Send2Lcd(0xc0," to the project");//DISPLAYS STRING IN THE SECOND LINE
+Delay_us(100000);
+while(PORTAbits.RA1==1){ //IF BUTTON IS ON
+if(PORTAbits.RA0==1) // IF PIR SENSOR IS HIGH(ANIMAL IS DETECTED)
+{
+PORTCbits.RC2=1; //BUZZER GETS TURNED ON
+Cmd(0X01); // CLEARS THE LCD
+Send2Lcd(0x84," detected"); // PRINTS DETECTED ON LCD
+Delay_us(10000);
+}
+else
+{
+PORTCbits.RC2=0; //BUZZER GETS TURNED OFF
+Cmd(0X01); // CLEARS SCREEN
+Send2Lcd(0x84," Not detected");// PRINTS NOT DETECTED
+Delay_us(10000);
+}
+}
+}
+else
+{
+Cmd(0X01);//CLEAR SCREEN OF LCD
+PORTCbits.RC2=0;//BUZZER GETS OFF
+}
+}
+void Cmd(int Value)
+{
+PORTD= Value; //WRITE THE COMMAND TO DATA LINES
+PORTCbits.RC0 = 0; //RS-0(COMMAND REGISTER)
+PORTCbits.RC1 = 1; //E-1(ENABLE)
+Delay_us(25);
+PORTCbits.RC1 = 0; //E-0(ENABLE)
+}
+void Data(int Value)
+{
+PORTD= Value; // WRITE THE CHARACTER TO DATA LINES
+PORTCbits.RC0 = 1; //RS-1(DATA REGISTER)
+PORTCbits.RC1 = 1; //E-1(ENABLE)
+Delay_us(25);
+PORTCbits.RC1 = 0; //E-0(ENABLE)
+}
+void Send2Lcd(const char Adr, const char *Lcd)
+{
+Cmd(Adr); //ADDRESS OF LOCATION TO DISPLAY STRING
+while(*Lcd!='\0') //CHECK FOR TERMINATION CHARACTER
+{
+Data(*Lcd); // DISPLAYS THE CHARACTER
+Lcd++; //INCREMENT THE POINTER
+}
+}
+void Delay_us(int us)
+{
+us=us>>1;
+while(us!=1)
+us--;
+} //end of the code
